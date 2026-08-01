@@ -50,8 +50,7 @@ public final class AppTheme {
 
     // ── Brutalist Panel ────────────────────────────────────────
     /**
-     * A JPanel that paints a solid background, a thick black border, and a hard
-     * black drop shadow.
+     * A simplified panel with a flat background and thin black border.
      */
     public static class BrutalistPanel extends JPanel {
         private Color bgColor;
@@ -59,28 +58,26 @@ public final class AppTheme {
         public BrutalistPanel(Color bgColor) {
             super();
             this.bgColor = bgColor;
-            setOpaque(false);
+            setOpaque(true);
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            int shadowOffset = 6;
-            int borderWidth = 3;
+            int shadowOffset = 2;
 
-            // Hard shadow
-            g2.setColor(Color.BLACK);
+            // Soft shadow
+            g2.setColor(new Color(0, 0, 0, 40));
             g2.fillRect(shadowOffset, shadowOffset, getWidth() - shadowOffset, getHeight() - shadowOffset);
 
             // Background
             g2.setColor(bgColor);
             g2.fillRect(0, 0, getWidth() - shadowOffset, getHeight() - shadowOffset);
 
-            // Thick Border
+            // Thin border
             g2.setColor(Color.BLACK);
-            g2.setStroke(new BasicStroke(borderWidth));
-            g2.drawRect(borderWidth / 2, borderWidth / 2, getWidth() - shadowOffset - borderWidth,
-                    getHeight() - shadowOffset - borderWidth);
+            g2.setStroke(new BasicStroke(1));
+            g2.drawRect(0, 0, getWidth() - shadowOffset - 1, getHeight() - shadowOffset - 1);
 
             g2.dispose();
             super.paintComponent(g);
@@ -143,109 +140,34 @@ public final class AppTheme {
     }
 
     /**
-     * Primary action button — brutalist style (thick border, hard shadow on hover).
+     * Primary action button — simplified flat style.
      */
     public static JButton primaryButton(String text) {
-        JButton btn = new JButton(text.toUpperCase()) {
-            private boolean hovering = false;
-            {
-                addMouseListener(new java.awt.event.MouseAdapter() {
-                    public void mouseEntered(java.awt.event.MouseEvent e) {
-                        hovering = true;
-                        repaint();
-                    }
-
-                    public void mouseExited(java.awt.event.MouseEvent e) {
-                        hovering = false;
-                        repaint();
-                    }
-                });
-            }
-
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                int shadowOffset = hovering ? 4 : 2;
-                int borderWidth = 3;
-
-                // Shadow
-                g2.setColor(Color.BLACK);
-                g2.fillRect(shadowOffset, shadowOffset, getWidth() - shadowOffset, getHeight() - shadowOffset);
-
-                // Background
-                g2.setColor(hovering ? Color.BLACK : ACCENT);
-                g2.fillRect(0, 0, getWidth() - shadowOffset, getHeight() - shadowOffset);
-
-                // Border
-                g2.setColor(Color.BLACK);
-                g2.setStroke(new BasicStroke(borderWidth));
-                g2.drawRect(borderWidth / 2, borderWidth / 2, getWidth() - shadowOffset - borderWidth,
-                        getHeight() - shadowOffset - borderWidth);
-
-                g2.dispose();
-                // Ensure text paints on top with correct color
-                setForeground(hovering ? Color.WHITE : Color.BLACK);
-                super.paintComponent(g);
-            }
-        };
+        JButton btn = new JButton(text.toUpperCase());
         btn.setFont(FONT_BUTTON);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
+        btn.setForeground(Color.BLACK);
+        btn.setBackground(ACCENT);
+        btn.setOpaque(true);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(Color.BLACK, 1, false),
+                new EmptyBorder(10, 24, 10, 24)));
         btn.setFocusPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(10, 24, 14, 28)); // padding for shadow space
         return btn;
     }
 
-    /** Danger button — red stark block. */
+    /** Danger button — simplified flat style. */
     public static JButton dangerButton(String text) {
-        JButton btn = new JButton(text.toUpperCase()) {
-            private boolean hovering = false;
-            {
-                addMouseListener(new java.awt.event.MouseAdapter() {
-                    public void mouseEntered(java.awt.event.MouseEvent e) {
-                        hovering = true;
-                        repaint();
-                    }
-
-                    public void mouseExited(java.awt.event.MouseEvent e) {
-                        hovering = false;
-                        repaint();
-                    }
-                });
-            }
-
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                int shadowOffset = hovering ? 4 : 2;
-                int borderWidth = 2;
-
-                // Shadow
-                g2.setColor(Color.BLACK);
-                g2.fillRect(shadowOffset, shadowOffset, getWidth() - shadowOffset, getHeight() - shadowOffset);
-
-                // Background
-                g2.setColor(hovering ? Color.BLACK : ACCENT_RED);
-                g2.fillRect(0, 0, getWidth() - shadowOffset, getHeight() - shadowOffset);
-
-                // Border
-                g2.setColor(Color.BLACK);
-                g2.setStroke(new BasicStroke(borderWidth));
-                g2.drawRect(borderWidth / 2, borderWidth / 2, getWidth() - shadowOffset - borderWidth,
-                        getHeight() - shadowOffset - borderWidth);
-
-                g2.dispose();
-                setForeground(hovering ? Color.WHITE : Color.BLACK);
-                super.paintComponent(g);
-            }
-        };
+        JButton btn = new JButton(text.toUpperCase());
         btn.setFont(new Font("Monospaced", Font.BOLD, 12));
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
+        btn.setForeground(Color.BLACK);
+        btn.setBackground(ACCENT_RED);
+        btn.setOpaque(true);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(Color.BLACK, 1, false),
+                new EmptyBorder(8, 16, 8, 16)));
         btn.setFocusPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(6, 16, 10, 20));
         btn.setToolTipText("Delete this item");
         return btn;
     }

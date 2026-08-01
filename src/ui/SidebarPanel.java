@@ -15,7 +15,7 @@ public class SidebarPanel extends JPanel {
     private static final int WIDTH = 230;
     private String activePage = "Dashboard";
     private Runnable onNavigate; // called after activePage changes
-
+    private JPanel navPanel;
     // Unicode icons for nav items
     private static final String[][] NAV_ITEMS = {
         { "\u2302", "Dashboard" },       // ⌂
@@ -57,7 +57,7 @@ public class SidebarPanel extends JPanel {
         brandPanel.add(subtitle);
 
         // ── Nav buttons ──
-        JPanel navPanel = new JPanel();
+        navPanel = new JPanel();
         navPanel.setOpaque(false);
         navPanel.setLayout(new BoxLayout(navPanel, BoxLayout.Y_AXIS));
         navPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -86,61 +86,47 @@ public class SidebarPanel extends JPanel {
     }
 
     private JPanel createNavButton(String icon, String label) {
-        JPanel btn = new JPanel(new BorderLayout()) {
-            private boolean hovering = false;
-            {
-                setOpaque(false);
-                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                addMouseListener(new MouseAdapter() {
-                    @Override
-                    public void mouseEntered(MouseEvent e) { hovering = true; repaint(); }
-                    @Override
-                    public void mouseExited(MouseEvent e)  { hovering = false; repaint(); }
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        activePage = label;
-                        onNavigate.run();
-                        // repaint the entire sidebar so all buttons update
-                        SidebarPanel.this.repaint();
-                    }
-                });
+        JPanel btn = new JPanel(new BorderLayout());
+        btn.setOpaque(true);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setBackground(label.equals(activePage) ? new Color(255, 255, 255) : new Color(255, 244, 180));
+        btn.setBorder(new CompoundBorder(
+                new LineBorder(Color.BLACK, 1, false),
+                new EmptyBorder(8, 18, 8, 14)));
+        btn.setMaximumSize(new Dimension(WIDTH - 24, 46));
+        btn.setPreferredSize(new Dimension(WIDTH - 24, 46));
+        btn.putClientProperty("navLabel", label);
+
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                activePage = label;
+                refreshNavButtons();
+                onNavigate.run();
             }
 
             @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                boolean active = label.equals(activePage);
-
-                if (active || hovering) {
-                    int offset = active ? 4 : 2;
-                    int border = 3;
-                    // Shadow
-                    g2.setColor(Color.BLACK);
-                    g2.fillRect(8 + offset, offset, getWidth() - 24 - offset, getHeight() - 8 - offset);
-                    // Background
-                    g2.setColor(Color.WHITE);
-                    g2.fillRect(8, 0, getWidth() - 24 - offset, getHeight() - 8 - offset);
-                    // Border
-                    g2.setColor(Color.BLACK);
-                    g2.setStroke(new BasicStroke(border));
-                    g2.drawRect(8 + border/2, border/2, getWidth() - 24 - offset - border, getHeight() - 8 - offset - border);
+            public void mouseEntered(MouseEvent e) {
+                if (!label.equals(activePage)) {
+                    btn.setBackground(new Color(255, 245, 160));
                 }
-                g2.dispose();
-                super.paintComponent(g);
             }
-        };
 
-        btn.setMaximumSize(new Dimension(WIDTH, 56));
-        btn.setPreferredSize(new Dimension(WIDTH, 56));
-        btn.setBorder(new EmptyBorder(0, 24, 8, 16));
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (!label.equals(activePage)) {
+                    btn.setBackground(new Color(255, 240, 120));
+                }
+            }
+        });
 
         JLabel iconLbl = new JLabel(icon);
-        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
         iconLbl.setForeground(Color.BLACK);
-        iconLbl.setPreferredSize(new Dimension(30, 30));
+        iconLbl.setPreferredSize(new Dimension(28, 28));
 
         JLabel textLbl = new JLabel(label.toUpperCase());
-        textLbl.setFont(label.equals(activePage) ? AppTheme.FONT_NAV_ACTIVE : AppTheme.FONT_NAV);
+        textLbl.setFont(label.equals(activePage) ? AppTheme.FONT_NAV_ACTIVE.deriveFont(14f) : AppTheme.FONT_NAV.deriveFont(14f));
         textLbl.setForeground(Color.BLACK);
 
         btn.add(iconLbl, BorderLayout.WEST);
@@ -149,14 +135,21 @@ public class SidebarPanel extends JPanel {
         return btn;
     }
 
-    /** Repaint redraws all children to reflect active state changes. */
-    @Override
-    public void repaint() {
-        super.repaint();
-        // Force children to repaint for active state
-        if (getComponentCount() > 0) {
-            for (Component c : getComponents()) {
-                c.repaint();
+    private void refreshNavButtons() {
+        for (Component comp : navPanel.getComponents()) {
+            if (!(comp instanceof JPanel)) {
+                continue;
+            }
+            JPanel btn = (JPanel) comp;
+            Object value = btn.getClientProperty("navLabel");
+            if (!(value instanceof String)) {
+                continue;
+            }
+            String label = (String) value;
+            btn.setBackground(label.equals(activePage) ? Color.WHITE : new Color(255, 240, 120));
+            Component center = ((BorderLayout) btn.getLayout()).getLayoutComponent(BorderLayout.CENTER);
+            if (center instanceof JLabel) {
+                ((JLabel) center).setFont(label.equals(activePage) ? AppTheme.FONT_NAV_ACTIVE : AppTheme.FONT_NAV);
             }
         }
     }

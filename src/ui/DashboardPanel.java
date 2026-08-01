@@ -104,9 +104,10 @@ public class DashboardPanel extends JPanel {
     }
 
     private JPanel createSummaryCard(String title, String value, String subtitle, Color bgColor) {
-        AppTheme.BrutalistPanel card = new AppTheme.BrutalistPanel(bgColor);
+        JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        // Provide enough border space so contents don't clip over the shadow
+        card.setOpaque(true);
+        card.setBackground(bgColor);
         card.setBorder(new EmptyBorder(20, 24, 26, 30));
 
         JLabel lblTitle = new JLabel(title);
