@@ -1,6 +1,8 @@
 import java.io.*;
 import java.sql.*;
 import db.DBConnection;
+import model.Category;
+import dao.CategoryDAO;
 public class Main{
     public static void main(String[] args){
 
@@ -16,6 +18,10 @@ public class Main{
             // insertStmt.setDouble(2, 3000.00);
             // int row = insertStmt.executeUpdate();
             // System.out.println(row);
+
+            // CategoryDAO categoryDAO = new CategoryDAO();
+            // Category newCat = categoryDAO.addCategory("Testing123", 500.00);
+            // System.out.println(newCat.getId() + " - " + newCat.getName() + " - " + newCat.getBudget());
 
             String select = "SELECT * FROM categories";
             PreparedStatement selectStmt = conn.prepareStatement(select);
