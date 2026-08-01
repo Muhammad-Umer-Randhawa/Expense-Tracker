@@ -5,6 +5,7 @@ import java.util.*;
 import db.DBConnection;
 import java.io.*;
 public class CategoryDAO {
+
     public Category addCategory(String name, double budget) throws SQLException, IOException {
         DBConnection db = new DBConnection();
         Connection conn = db.connectDatabase();
@@ -36,6 +37,7 @@ public class CategoryDAO {
         PreparedStatement selectStmt = conn.prepareStatement(select);
         ResultSet rs = selectStmt.executeQuery();
         List<Category> categories = new ArrayList<>();
+        
         while(rs.next()){
             int id = rs.getInt("id");
             String name = rs.getString("name");
