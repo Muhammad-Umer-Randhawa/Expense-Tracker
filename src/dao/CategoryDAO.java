@@ -14,7 +14,7 @@ public class CategoryDAO {
 
         insertStmt.setString(1, name);
         insertStmt.setDouble(2, budget);
-        int row = insertStmt.executeUpdate();
+        insertStmt.executeUpdate();
         ResultSet keys = insertStmt.getGeneratedKeys();
         keys.next();
         int id = keys.getInt(1);

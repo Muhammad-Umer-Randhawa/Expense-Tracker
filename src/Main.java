@@ -1,8 +1,8 @@
 import java.io.*;
 import java.sql.*;
 import db.DBConnection;
-import model.Category;
-import dao.CategoryDAO;
+// import model.Category;
+// import dao.CategoryDAO;
 public class Main{
     public static void main(String[] args){
 
