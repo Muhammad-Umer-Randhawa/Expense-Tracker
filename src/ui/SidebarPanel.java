@@ -97,9 +97,24 @@ public class SidebarPanel extends JPanel {
         btn.setPreferredSize(new Dimension(WIDTH - 24, 46));
         btn.putClientProperty("navLabel", label);
 
-        btn.addMouseListener(new MouseAdapter() {
+        JLabel iconLbl = new JLabel(icon);
+        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
+        iconLbl.setForeground(Color.BLACK);
+        iconLbl.setPreferredSize(new Dimension(28, 28));
+
+        JLabel textLbl = new JLabel(label.toUpperCase());
+        textLbl.setFont(label.equals(activePage) ? AppTheme.FONT_NAV_ACTIVE.deriveFont(14f) : AppTheme.FONT_NAV.deriveFont(14f));
+        textLbl.setForeground(Color.BLACK);
+
+        MouseAdapter navClickListener = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                activePage = label;
+                refreshNavButtons();
+                onNavigate.run();
+            }
+            @Override
+            public void mousePressed(MouseEvent e) {
                 activePage = label;
                 refreshNavButtons();
                 onNavigate.run();
@@ -118,16 +133,11 @@ public class SidebarPanel extends JPanel {
                     btn.setBackground(new Color(255, 240, 120));
                 }
             }
-        });
+        };
 
-        JLabel iconLbl = new JLabel(icon);
-        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
-        iconLbl.setForeground(Color.BLACK);
-        iconLbl.setPreferredSize(new Dimension(28, 28));
-
-        JLabel textLbl = new JLabel(label.toUpperCase());
-        textLbl.setFont(label.equals(activePage) ? AppTheme.FONT_NAV_ACTIVE.deriveFont(14f) : AppTheme.FONT_NAV.deriveFont(14f));
-        textLbl.setForeground(Color.BLACK);
+        btn.addMouseListener(navClickListener);
+        iconLbl.addMouseListener(navClickListener);
+        textLbl.addMouseListener(navClickListener);
 
         btn.add(iconLbl, BorderLayout.WEST);
         btn.add(textLbl, BorderLayout.CENTER);

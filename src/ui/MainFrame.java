@@ -11,6 +11,10 @@ public class MainFrame extends JFrame {
     private CardLayout cardLayout;
     private JPanel contentPanel;
     private SidebarPanel sidebar;
+    private DashboardPanel dashboardPanel;
+    private ExpensePanel expensePanel;
+    private CategoryPanel categoryPanel;
+    private MonthlySummaryPanel summaryPanel;
 
     public MainFrame() {
         setTitle("Expense Tracker");
@@ -28,15 +32,28 @@ public class MainFrame extends JFrame {
         contentPanel = new JPanel(cardLayout);
         contentPanel.setBackground(AppTheme.BG_MAIN);
 
-        contentPanel.add(new DashboardPanel(), "Dashboard");
-        contentPanel.add(new ExpensePanel(), "Expenses");
-        contentPanel.add(new CategoryPanel(), "Categories");
-        contentPanel.add(new MonthlySummaryPanel(), "Summary");
+        dashboardPanel = new DashboardPanel();
+        expensePanel = new ExpensePanel();
+        categoryPanel = new CategoryPanel();
+        summaryPanel = new MonthlySummaryPanel();
+
+        contentPanel.add(dashboardPanel, "Dashboard");
+        contentPanel.add(expensePanel, "Expenses");
+        contentPanel.add(categoryPanel, "Categories");
+        contentPanel.add(summaryPanel, "Summary");
 
         // Sidebar — navigates the CardLayout
         sidebar = new SidebarPanel(() -> {
             String page = sidebar.getActivePage();
             cardLayout.show(contentPanel, page);
+
+            if (page.equals("Dashboard")) {
+                dashboardPanel.refreshData();
+            } else if (page.equals("Expenses")) {   
+                expensePanel.refreshData();
+            } else if (page.equals("Summary")) {
+                summaryPanel.refreshData();
+            }
         });
 
         add(sidebar, BorderLayout.WEST);

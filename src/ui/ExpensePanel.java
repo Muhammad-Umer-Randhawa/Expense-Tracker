@@ -173,17 +173,10 @@ public class ExpensePanel extends JPanel {
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
-                try {
-                    categoryList = categoryDAO.getAllCategories();
-                } catch (SQLException | IOException ex) {
-                    categoryList = new ArrayList<>();
-                }
-                categoryCombo.removeAllItems();
-                for(Category c : categoryList) {
-                    categoryCombo.addItem(c.getName());
-                }
+                refreshData();
             }
         });
+        refreshData();
     }
 
     private String findCategoryName(int categoryId) {
@@ -303,6 +296,35 @@ public class ExpensePanel extends JPanel {
         @Override
         public Object getCellEditorValue() {
             return "Delete";
+        }
+    }
+    public void refreshData() {
+        try {
+            categoryList = categoryDAO.getAllCategories();
+        }
+        catch(SQLException | IOException e) {
+            categoryList = new ArrayList<>();
+        }
+        categoryCombo.removeAllItems();
+        for(Category c : categoryList) {
+            categoryCombo.addItem(c.getName());
+        }
+        List<Expense> expenses = new ArrayList<>();
+        try {
+            expenses = expenseDAO.getAllExpenses();
+        } catch (SQLException | IOException e) {
+            JOptionPane.showMessageDialog(this, "Failed to load expenses: " + e.getMessage());
+        }
+        tableModel.setRowCount(0);
+        for (Expense ex : expenses) {
+            tableModel.addRow(new Object[] {
+                String.valueOf(ex.getId()),
+                ex.getDate().toString(),
+                ex.getDescription(),
+                findCategoryName(ex.getCategoryId()),
+                "Rs. " + ex.getAmount(),
+                "Delete"
+            });
         }
     }
 }

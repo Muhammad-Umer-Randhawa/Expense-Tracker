@@ -10,31 +10,21 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.io.IOException;
 import java.time.LocalDate;
+import dao.ExpenseDAO;
+import dao.CategoryDAO;
+import model.Expense;
+import model.Category;
+import java.util.List;
+import java.util.ArrayList;
 
 public class DashboardPanel extends JPanel {
 
     private MonthlySummaryDAO summaryDAO = new MonthlySummaryDAO();
+    private ExpenseDAO expenseDAO = new ExpenseDAO();
+    private JLabel totalExpensesLabel, monthlySalaryLabel, savingsLabel;
+    private DefaultTableModel tableModel;
 
     public DashboardPanel() {
-
-        LocalDate today = LocalDate.now();
-        LocalDate firstOfMonth = today.withDayOfMonth(1);
-        Date monthDate = Date.valueOf(firstOfMonth);
-
-        double salary = 0;
-        double totalExpenses = 0;
-
-        try {
-            MonthlySummary summary = summaryDAO.getMonthlySummary(monthDate);
-            if (summary != null) {
-                salary = summary.getSalary();
-            }
-            totalExpenses = summaryDAO.getTotalExpensesForMonth(monthDate);
-        } catch (SQLException | IOException e) {
-            JOptionPane.showMessageDialog(this, "Failed to load summary: " + e.getMessage());
-        }
-
-        double savings = salary - totalExpenses;
 
         setBackground(AppTheme.BG_MAIN);
         setLayout(new BorderLayout(0, 24));
@@ -61,9 +51,13 @@ public class DashboardPanel extends JPanel {
         cardsRow.setOpaque(false);
         cardsRow.setPreferredSize(new Dimension(0, 130));
 
-        cardsRow.add(createSummaryCard("TOTAL EXPENSES", String.format("Rs. %,.0f", totalExpenses), "THIS MONTH", AppTheme.ACCENT_BLUE));
-        cardsRow.add(createSummaryCard("MONTHLY SALARY", String.format("Rs. %,.0f", salary), "THIS MONTH", AppTheme.ACCENT_GREEN));
-        cardsRow.add(createSummaryCard("SAVINGS", String.format("Rs. %,.0f", savings), "REMAINING BALANCE", AppTheme.ACCENT_PURPLE));
+        totalExpensesLabel = new JLabel("Rs. 0");
+        monthlySalaryLabel = new JLabel("Rs. 0");
+        savingsLabel = new JLabel("Rs. 0");
+
+        cardsRow.add(createSummaryCard("TOTAL EXPENSES", totalExpensesLabel, "THIS MONTH", AppTheme.ACCENT_BLUE));
+        cardsRow.add(createSummaryCard("MONTHLY SALARY", monthlySalaryLabel, "THIS MONTH", AppTheme.ACCENT_GREEN));
+        cardsRow.add(createSummaryCard("SAVINGS", savingsLabel, "REMAINING BALANCE", AppTheme.ACCENT_PURPLE));
 
         JPanel topSection = new JPanel();
         topSection.setOpaque(false);
@@ -80,24 +74,16 @@ public class DashboardPanel extends JPanel {
         tableSection.add(tableLbl, BorderLayout.NORTH);
 
         String[] columns = { "Date", "Description", "Category", "Amount" };
-        Object[][] data = {
-                { "2026-08-01", "Uber ride to office", "Transport", "Rs. 350" },
-                { "2026-07-31", "Grocery shopping", "Food", "Rs. 2,200" },
-                { "2026-07-30", "Netflix subscription", "Entertainment", "Rs. 649" },
-                { "2026-07-29", "Electricity bill", "Utilities", "Rs. 1,450" },
-                { "2026-07-28", "Coffee with friends", "Food", "Rs. 480" },
-                { "2026-07-27", "Gym membership", "Health", "Rs. 1,500" },
-                { "2026-07-26", "Stationery supplies", "Education", "Rs. 320" },
-                { "2026-07-25", "Petrol fill-up", "Transport", "Rs. 2,000" },
-        };
 
-        DefaultTableModel model = new DefaultTableModel(data, columns) {
+        Object[][] data = new Object[0][4];
+
+        tableModel = new DefaultTableModel(data, columns) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
-        JTable table = new JTable(model);
+        JTable table = new JTable(tableModel);
         AppTheme.styleTable(table);
 
         // Right-align the amount column
@@ -122,9 +108,24 @@ public class DashboardPanel extends JPanel {
 
         add(topSection, BorderLayout.NORTH);
         add(tableSection, BorderLayout.CENTER);
-    }
 
-    private JPanel createSummaryCard(String title, String value, String subtitle, Color bgColor) {
+        refreshData();
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                refreshData();
+            }
+        });
+    }
+    
+    private String findCategoryName(int categoryId, List<Category> categories) {
+    for (Category c : categories) {
+        if (c.getId() == categoryId) return c.getName();
+    }
+    return "Unknown";
+}
+
+    private JPanel createSummaryCard(String title, JLabel valueLabel, String subtitle, Color bgColor) {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setOpaque(true);
@@ -136,10 +137,9 @@ public class DashboardPanel extends JPanel {
         lblTitle.setForeground(Color.BLACK);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblValue = new JLabel(value);
-        lblValue.setFont(AppTheme.FONT_CARD_NUM);
-        lblValue.setForeground(Color.BLACK);
-        lblValue.setAlignmentX(Component.LEFT_ALIGNMENT);
+        valueLabel.setFont(AppTheme.FONT_CARD_NUM);
+        valueLabel.setForeground(Color.BLACK);
+        valueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel lblSub = new JLabel(subtitle);
         lblSub.setFont(new Font("Monospaced", Font.BOLD, 12));
@@ -148,10 +148,61 @@ public class DashboardPanel extends JPanel {
 
         card.add(lblTitle);
         card.add(Box.createVerticalStrut(8));
-        card.add(lblValue);
+        card.add(valueLabel);
         card.add(Box.createVerticalGlue());
         card.add(lblSub);
 
         return card;
     }
+
+    public void refreshData() {
+    LocalDate today = LocalDate.now();
+    LocalDate firstOfMonth = today.withDayOfMonth(1);
+    Date monthDate = Date.valueOf(firstOfMonth);
+    double salary = 0;
+    double totalExpenses = 0;
+
+    try {
+        MonthlySummary summary = summaryDAO.getMonthlySummary(monthDate);
+        if (summary != null) {
+            salary = summary.getSalary();
+        }
+        totalExpenses = summaryDAO.getTotalExpensesForMonth(monthDate);
+    } catch (SQLException | IOException e) {
+        JOptionPane.showMessageDialog(this, "Failed to load summary: " + e.getMessage());
+    }
+
+    double savings = salary - totalExpenses;
+
+    totalExpensesLabel.setText(String.format("Rs. %,.0f", totalExpenses));
+    monthlySalaryLabel.setText(String.format("Rs. %,.0f", salary));
+    savingsLabel.setText(String.format("Rs. %,.0f", savings));
+
+    List<Expense> expenses = new ArrayList<>();
+    try {
+        expenses = expenseDAO.getAllExpenses();
+    } catch (SQLException | IOException e) {
+        JOptionPane.showMessageDialog(this, "Failed to load expenses: " + e.getMessage());
+    }
+
+    expenses.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+    if (expenses.size() > 8) {
+        expenses = expenses.subList(0, 8);
+    }
+    List<Category> categories = new ArrayList<>();
+    try {
+        categories = new CategoryDAO().getAllCategories();
+    } catch (SQLException | IOException e) {
+        e.printStackTrace();
+    }
+    tableModel.setRowCount(0);
+    for (Expense ex : expenses) {
+        tableModel.addRow(new Object[] {
+            ex.getDate().toString(),
+            ex.getDescription(),
+            findCategoryName(ex.getCategoryId(), categories),
+            String.format("Rs. %,.0f", ex.getAmount())
+        });
+    }
+}
 }

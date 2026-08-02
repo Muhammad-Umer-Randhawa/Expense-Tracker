@@ -187,17 +187,7 @@ public class MonthlySummaryPanel extends JPanel {
 
         summarySection.add(barContainer);
 
-        try {
-            MonthlySummary summary = summaryDAO.getMonthlySummary(monthDate);
-            if (summary != null) {
-                currentSalary = summary.getSalary();
-                salaryField.setText(String.valueOf(summary.getSalary()));
-            }
-            currentExpenses = summaryDAO.getTotalExpensesForMonth(monthDate);
-            handleSetSalary();
-        } catch (SQLException | IOException e) {
-            JOptionPane.showMessageDialog(this, "Failed to load summary: " + e.getMessage());
-        }
+        refreshData();
 
         add(topSection, BorderLayout.NORTH);
         add(summarySection, BorderLayout.CENTER);
@@ -279,5 +269,18 @@ public class MonthlySummaryPanel extends JPanel {
         }
         statusDisplay.setText(status);
         balanceBar.repaint();
+    }
+    public void refreshData () {
+        try {
+            MonthlySummary summary = summaryDAO.getMonthlySummary(monthDate);
+            if (summary != null) {
+                currentSalary = summary.getSalary();
+                salaryField.setText(String.valueOf(summary.getSalary()));
+            }
+            currentExpenses = summaryDAO.getTotalExpensesForMonth(monthDate);
+            handleSetSalary();
+        } catch (SQLException | IOException e) {
+            JOptionPane.showMessageDialog(this, "Failed to load summary: " + e.getMessage());
+        }
     }
 }
