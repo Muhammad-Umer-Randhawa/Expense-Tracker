@@ -4,6 +4,16 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
 import java.awt.*;
+import dao.ExpenseDAO;
+import dao.CategoryDAO;
+import model.Expense;
+import model.Category;
+import java.util.List;
+import java.util.ArrayList;
+import java.sql.SQLException;
+import java.sql.Date;
+import java.io.IOException;
+import java.awt.event.*;
 
 /**
  * Expense management screen — add expense form + full expense list table.
@@ -14,6 +24,9 @@ public class ExpensePanel extends JPanel {
     private DefaultTableModel tableModel;
     private JTextField amountField, descField, dateField;
     private JComboBox<String> categoryCombo;
+    private ExpenseDAO expenseDAO = new ExpenseDAO();
+    private CategoryDAO categoryDAO = new CategoryDAO();
+    private List<Category> categoryList;
 
     public ExpensePanel() {
         setBackground(AppTheme.BG_MAIN);
@@ -54,7 +67,16 @@ public class ExpensePanel extends JPanel {
         fieldsRow.add(createFieldGroup("Description", descField = AppTheme.styledTextField(10)));
         fieldsRow.add(createFieldGroup("Date (YYYY-MM-DD)", dateField = AppTheme.styledTextField(10)));
 
-        String[] categories = { "Food", "Transport", "Entertainment", "Utilities", "Health", "Education" };
+        this.categoryList = new ArrayList<>();
+        try {
+            categoryList = categoryDAO.getAllCategories();
+        } catch (SQLException | IOException e) {
+            categoryList = new ArrayList<>();
+        }
+        String[] categories = new String[categoryList.size()];
+        for (int i = 0; i < categoryList.size(); i++) {
+            categories[i] = categoryList.get(i).getName();
+        }
         categoryCombo = AppTheme.styledComboBox(categories);
         fieldsRow.add(createFieldGroup("Category", categoryCombo));
 
@@ -89,14 +111,24 @@ public class ExpensePanel extends JPanel {
         tableSection.add(tableLbl, BorderLayout.NORTH);
 
         String[] columns = { "ID", "Date", "Description", "Category", "Amount", "Action" };
-        Object[][] data = {
-                { "1", "2026-08-01", "Uber ride to office", "Transport", "Rs. 350", "Delete" },
-                { "2", "2026-07-31", "Grocery shopping", "Food", "Rs. 2,200", "Delete" },
-                { "3", "2026-07-30", "Netflix subscription", "Entertainment", "Rs. 649", "Delete" },
-                { "4", "2026-07-29", "Electricity bill", "Utilities", "Rs. 1,450", "Delete" },
-                { "5", "2026-07-28", "Coffee with friends", "Food", "Rs. 480", "Delete" },
-                { "6", "2026-07-27", "Gym membership", "Health", "Rs. 1,500", "Delete" },
-        };
+        List<Expense> expenses;
+        try {
+            expenses = expenseDAO.getAllExpenses();
+        } catch (SQLException | IOException e) {
+            JOptionPane.showMessageDialog(this, "Failed to load expenses: " + e.getMessage());
+            expenses = new ArrayList<>();
+        }
+
+        Object[][] data = new Object[expenses.size()][6];
+        for (int i = 0; i < expenses.size(); i++) {
+            Expense ex = expenses.get(i);
+            data[i][0] = String.valueOf(ex.getId());
+            data[i][1] = ex.getDate().toString();
+            data[i][2] = ex.getDescription();
+            data[i][3] = findCategoryName(ex.getCategoryId());
+            data[i][4] = "Rs. " + ex.getAmount();
+            data[i][5] = "Delete";
+        }
 
         tableModel = new DefaultTableModel(data, columns) {
             @Override
@@ -137,10 +169,32 @@ public class ExpensePanel extends JPanel {
 
         add(topSection, BorderLayout.NORTH);
         add(tableSection, BorderLayout.CENTER);
+
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                try {
+                    categoryList = categoryDAO.getAllCategories();
+                } catch (SQLException | IOException ex) {
+                    categoryList = new ArrayList<>();
+                }
+                categoryCombo.removeAllItems();
+                for(Category c : categoryList) {
+                    categoryCombo.addItem(c.getName());
+                }
+            }
+        });
+    }
+
+    private String findCategoryName(int categoryId) {
+            for (Category c : categoryList) {
+                if (c.getId() == categoryId) return c.getName();
+            }
+            return "Unknown";
     }
 
     private JPanel createFieldGroup(String label, JComponent field) {
-        JPanel group = new JPanel();
+        JPanel group = new JPanel();    
         group.setOpaque(false);
         group.setLayout(new BoxLayout(group, BoxLayout.Y_AXIS));
         JLabel lbl = AppTheme.formLabel(label);
@@ -154,26 +208,37 @@ public class ExpensePanel extends JPanel {
     }
 
     private void handleAddExpense() {
-        String amount = amountField.getText().trim();
+        String amountText = amountField.getText().trim();
         String desc = descField.getText().trim();
-        String date = dateField.getText().trim();
-        String category = (String) categoryCombo.getSelectedItem();
+        String dateText = dateField.getText().trim();
+        String categoryName = (String) categoryCombo.getSelectedItem();
 
-        if (amount.isEmpty() || desc.isEmpty() || date.isEmpty()) {
-            // Show a styled warning
-            JOptionPane.showMessageDialog(this,
-                    "Please fill in all fields.", "Missing Fields", JOptionPane.WARNING_MESSAGE);
+        if (amountText.isEmpty() || desc.isEmpty() || dateText.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in all fields.", "Missing Fields", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // Add to table (dummy — no backend)
-        int nextId = tableModel.getRowCount() + 1;
-        tableModel.addRow(new Object[] { String.valueOf(nextId), date, desc, category, "Rs. " + amount, "Delete" });
+        try {
+            double amount = Double.parseDouble(amountText);
+            Date date = Date.valueOf(dateText);
+            int categoryId = -1;
+            for (Category c : categoryList) {
+                if (c.getName().equals(categoryName)) { categoryId = c.getId(); break; }
+            }
 
-        // Clear fields
-        amountField.setText("");
-        descField.setText("");
-        dateField.setText("");
+            Expense ex = expenseDAO.addExpense(categoryId, amount, date, desc);
+            tableModel.addRow(new Object[] { String.valueOf(ex.getId()), ex.getDate().toString(), ex.getDescription(), categoryName, "Rs. " + ex.getAmount(), "Delete" });
+
+            amountField.setText("");
+            descField.setText("");
+            dateField.setText("");
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Amount must be a number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, "Date must be in YYYY-MM-DD format.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException | IOException ex) {
+            JOptionPane.showMessageDialog(this, "Failed to add expense: " + ex.getMessage());
+        }
     }
 
     // ── Delete button renderer ──
@@ -214,7 +279,13 @@ public class ExpensePanel extends JPanel {
                 int row = table.getEditingRow();
                 fireEditingStopped();
                 if (row >= 0 && row < model.getRowCount()) {
-                    model.removeRow(row);
+                    int id = Integer.parseInt((String) model.getValueAt(row, 0));
+                    try {
+                        new ExpenseDAO().deleteExpense(id);
+                        model.removeRow(row);
+                    } catch (SQLException | IOException ex) {
+                        JOptionPane.showMessageDialog(panel, "Failed to delete: " + ex.getMessage());
+                    }
                 }
             });
             panel.add(button);
