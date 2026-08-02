@@ -4,6 +4,14 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
 import java.awt.*;
+import java.io.IOException;
+import java.sql.SQLException;
+
+import dao.CategoryDAO;
+import model.Category;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Category management screen — add category form + categories table.
@@ -13,6 +21,7 @@ public class CategoryPanel extends JPanel {
 
     private DefaultTableModel tableModel;
     private JTextField nameField, budgetField;
+    private CategoryDAO categoryDAO = new CategoryDAO();
 
     public CategoryPanel() {
         setBackground(AppTheme.BG_MAIN);
@@ -82,14 +91,22 @@ public class CategoryPanel extends JPanel {
         tableSection.add(tableLbl, BorderLayout.NORTH);
 
         String[] columns = { "ID", "Name", "Budget", "Action" };
-        Object[][] data = {
-                { "1", "Food", "Rs. 8,000", "Delete" },
-                { "2", "Transport", "Rs. 3,000", "Delete" },
-                { "3", "Entertainment", "Rs. 2,000", "Delete" },
-                { "4", "Utilities", "Rs. 5,000", "Delete" },
-                { "5", "Health", "Rs. 3,000", "Delete" },
-                { "6", "Education", "Rs. 2,000", "Delete" },
-        };
+        List<Category> categories;
+        try {
+            categories = categoryDAO.getAllCategories();
+        } catch (SQLException | IOException e) {
+            JOptionPane.showMessageDialog(this, "Failed to load categories: " + e.getMessage());
+            categories = new ArrayList<>();
+        }
+
+        Object[][] data = new Object[categories.size()][4];
+        for (int i = 0; i < categories.size(); i++) {
+            Category c = categories.get(i);
+            data[i][0] = String.valueOf(c.getId());
+            data[i][1] = c.getName();
+            data[i][2] = "Rs. " + c.getBudget();
+            data[i][3] = "Delete";
+        }
 
         tableModel = new DefaultTableModel(data, columns) {
             @Override
@@ -147,18 +164,24 @@ public class CategoryPanel extends JPanel {
 
     private void handleAddCategory() {
         String name = nameField.getText().trim();
-        String budget = budgetField.getText().trim();
+        String budgetText = budgetField.getText().trim();
 
-        if (name.isEmpty() || budget.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Please fill in both fields.", "Missing Fields", JOptionPane.WARNING_MESSAGE);
+        if (name.isEmpty() || budgetText.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill in both fields.", "Missing Fields", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        int nextId = tableModel.getRowCount() + 1;
-        tableModel.addRow(new Object[] { String.valueOf(nextId), name, "Rs. " + budget, "Delete" });
-        nameField.setText("");
-        budgetField.setText("");
+        try {
+            double budget = Double.parseDouble(budgetText);
+            Category c = categoryDAO.addCategory(name, budget);
+            tableModel.addRow(new Object[] { String.valueOf(c.getId()), c.getName(), "Rs. " + c.getBudget(), "Delete" });
+            nameField.setText("");
+            budgetField.setText("");
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Budget must be a number.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException | IOException ex) {
+            JOptionPane.showMessageDialog(this, "Failed to add category: " + ex.getMessage());
+        }
     }
 
     // ── Delete button renderer ──
@@ -198,8 +221,15 @@ public class CategoryPanel extends JPanel {
             button.addActionListener(e -> {
                 int row = table.getEditingRow();
                 fireEditingStopped();
-                if (row >= 0 && row < model.getRowCount())
-                    model.removeRow(row);
+                if (row >= 0 && row < model.getRowCount()) {
+                    int id = Integer.parseInt((String) model.getValueAt(row, 0));
+                    try {
+                        new CategoryDAO().deleteCategory(id);
+                        model.removeRow(row);
+                    } catch (SQLException | IOException ex) {
+                        JOptionPane.showMessageDialog(panel, "Failed to delete: " + ex.getMessage());
+                    }
+                }
             });
             panel.add(button);
         }
