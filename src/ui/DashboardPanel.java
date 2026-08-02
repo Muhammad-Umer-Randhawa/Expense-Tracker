@@ -4,14 +4,23 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
 import java.awt.*;
+import dao.MonthlySummaryDAO;
+import model.MonthlySummary;
+import java.sql.Date;
+import java.sql.SQLException;
+import java.io.IOException;
+import java.time.LocalDate;
 
-/**
- * Dashboard screen — summary cards + recent expenses table.
- * All data is dummy / hardcoded.
- */
 public class DashboardPanel extends JPanel {
 
+    private MonthlySummaryDAO summaryDAO = new MonthlySummaryDAO();
+
     public DashboardPanel() {
+        
+        LocalDate today = LocalDate.now();
+        LocalDate firstOfMonth = today.withDayOfMonth(1);
+        Date monthDate = Date.valueOf(firstOfMonth);
+
         setBackground(AppTheme.BG_MAIN);
         setLayout(new BorderLayout(0, 24));
         setBorder(new EmptyBorder(32, 36, 32, 36));

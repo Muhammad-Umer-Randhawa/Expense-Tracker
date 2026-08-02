@@ -4,22 +4,30 @@ import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
 import java.awt.geom.*;
+import dao.MonthlySummaryDAO;
+import model.MonthlySummary;
+import java.sql.Date;
+import java.sql.SQLException;
+import java.io.IOException;
+import java.time.LocalDate;
 
-/**
- * Monthly summary screen — set salary, view monthly breakdown.
- * All data is dummy / hardcoded. No backend connection.
- */
 public class MonthlySummaryPanel extends JPanel {
 
     private JTextField monthField, salaryField;
     private JLabel salaryDisplay, expensesDisplay, balanceDisplay, statusDisplay;
     private JPanel balanceBar;
+    private MonthlySummaryDAO summaryDAO = new MonthlySummaryDAO();
 
-    // Dummy state
-    private double currentSalary = 60000;
-    private double currentExpenses = 24850;
+    private double currentSalary = 0;
+    private double currentExpenses = 0;
+    private Date monthDate;
 
     public MonthlySummaryPanel() {
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate firstOfMonth = today.withDayOfMonth(1);
+        monthDate = Date.valueOf(firstOfMonth);
+
         setBackground(AppTheme.BG_MAIN);
         setLayout(new BorderLayout(0, 24));
         setBorder(new EmptyBorder(32, 36, 32, 36));
@@ -179,6 +187,18 @@ public class MonthlySummaryPanel extends JPanel {
 
         summarySection.add(barContainer);
 
+        try {
+            MonthlySummary summary = summaryDAO.getMonthlySummary(monthDate);
+            if (summary != null) {
+                currentSalary = summary.getSalary();
+                salaryField.setText(String.valueOf(summary.getSalary()));
+            }
+            currentExpenses = summaryDAO.getTotalExpensesForMonth(monthDate);
+            handleSetSalary();
+        } catch (SQLException | IOException e) {
+            JOptionPane.showMessageDialog(this, "Failed to load summary: " + e.getMessage());
+        }
+
         add(topSection, BorderLayout.NORTH);
         add(summarySection, BorderLayout.CENTER);
     }
@@ -232,8 +252,12 @@ public class MonthlySummaryPanel extends JPanel {
 
         try {
             currentSalary = Double.parseDouble(salaryText);
+            summaryDAO.addOrUpdateMonth(monthDate, currentSalary);
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Invalid salary amount.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        } catch (SQLException | IOException e) {
+            JOptionPane.showMessageDialog(this, "Failed to save salary: " + e.getMessage());
             return;
         }
 

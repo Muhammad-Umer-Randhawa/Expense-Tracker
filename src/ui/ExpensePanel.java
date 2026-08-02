@@ -225,7 +225,10 @@ public class ExpensePanel extends JPanel {
             for (Category c : categoryList) {
                 if (c.getName().equals(categoryName)) { categoryId = c.getId(); break; }
             }
-
+            if (categoryId == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a valid category.", "Invalid Category", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             Expense ex = expenseDAO.addExpense(categoryId, amount, date, desc);
             tableModel.addRow(new Object[] { String.valueOf(ex.getId()), ex.getDate().toString(), ex.getDescription(), categoryName, "Rs. " + ex.getAmount(), "Delete" });
 
