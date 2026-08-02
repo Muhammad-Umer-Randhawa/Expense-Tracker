@@ -16,10 +16,25 @@ public class DashboardPanel extends JPanel {
     private MonthlySummaryDAO summaryDAO = new MonthlySummaryDAO();
 
     public DashboardPanel() {
-        
+
         LocalDate today = LocalDate.now();
         LocalDate firstOfMonth = today.withDayOfMonth(1);
         Date monthDate = Date.valueOf(firstOfMonth);
+
+        double salary = 0;
+        double totalExpenses = 0;
+
+        try {
+            MonthlySummary summary = summaryDAO.getMonthlySummary(monthDate);
+            if (summary != null) {
+                salary = summary.getSalary();
+            }
+            totalExpenses = summaryDAO.getTotalExpensesForMonth(monthDate);
+        } catch (SQLException | IOException e) {
+            JOptionPane.showMessageDialog(this, "Failed to load summary: " + e.getMessage());
+        }
+
+        double savings = salary - totalExpenses;
 
         setBackground(AppTheme.BG_MAIN);
         setLayout(new BorderLayout(0, 24));
@@ -46,12 +61,9 @@ public class DashboardPanel extends JPanel {
         cardsRow.setOpaque(false);
         cardsRow.setPreferredSize(new Dimension(0, 130));
 
-        cardsRow.add(createSummaryCard("TOTAL EXPENSES", "Rs. 24,850", "THIS MONTH",
-                AppTheme.ACCENT_BLUE));
-        cardsRow.add(createSummaryCard("MONTHLY SALARY", "Rs. 60,000", "AUGUST 2026",
-                AppTheme.ACCENT_GREEN));
-        cardsRow.add(createSummaryCard("SAVINGS", "Rs. 35,150", "REMAINING BALANCE",
-                AppTheme.ACCENT_PURPLE));
+        cardsRow.add(createSummaryCard("TOTAL EXPENSES", String.format("Rs. %,.0f", totalExpenses), "THIS MONTH", AppTheme.ACCENT_BLUE));
+        cardsRow.add(createSummaryCard("MONTHLY SALARY", String.format("Rs. %,.0f", salary), "THIS MONTH", AppTheme.ACCENT_GREEN));
+        cardsRow.add(createSummaryCard("SAVINGS", String.format("Rs. %,.0f", savings), "REMAINING BALANCE", AppTheme.ACCENT_PURPLE));
 
         JPanel topSection = new JPanel();
         topSection.setOpaque(false);
