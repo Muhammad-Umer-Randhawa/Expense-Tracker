@@ -9,8 +9,6 @@ A Java + MySQL desktop application for tracking personal expenses, managing spen
 
 ## Setup
 
-1. Create the database and tables:
-   ```
 ## Clone the repository
 
 Clone the project locally using HTTPS or SSH, then change into the project directory.
